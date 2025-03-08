@@ -1,11 +1,54 @@
+'''
+SCATS DASHBOARD: BETA VERSION
+LAST UPDATED: 8/03/2025
+
+MADE BY: Matthew Bentham
+
+
+'''
+
+
+#Library Imports
 import streamlit as st
 import sqlite3
 import pandas as pd
 import os
+from IntProfile import intTab
 import tempfile
+st.set_page_config(page_title='First app', page_icon="📊", initial_sidebar_state="expanded", layout='wide')
+# LOAD EXTERNAL CSS FOR STYLING
+def load_css(file_path):
+    with open(file_path) as f:
+        st.html(f"<style>{f.read()}</style>")
 
-# Streamlit UI
-st.title("📊 SQLite Database Viewer")
+css_path=os.path.join('assets','style.css')
+load_css(css_path)
+
+
+# PAGE SETUP _______________________________________________________________________
+st.markdown("""
+        <style>
+               /* Remove blank space at top and bottom */ 
+               .block-container {
+                   padding-top: 1rem;
+                   padding-bottom: 0rem;
+                }
+
+        </style>
+        """, unsafe_allow_html=True)
+st.markdown(
+        """
+        <h1 style="text-align: left; margin-top: 0;">
+            S.C.A.T.S Dashboard Tool
+        </h1>
+        """,
+        unsafe_allow_html=True
+    )
+
+#_____________________________________________________________________________________
+
+
+
 
 # User Input for Database File (using file uploader instead of text input)
 db_file = st.file_uploader("Choose an SQLite database file:", type=["sqlite", "db"])
@@ -37,6 +80,7 @@ if db_file:
             st.write(f"### 📌 Data from `{selected_table}` table:")
             st.dataframe(df)
 
+
         else:
             st.warning("No tables found in this database.")
 
@@ -47,3 +91,10 @@ if db_file:
         st.error(f"Error connecting to database: {e}")
 else:
     st.info("Please upload an SQLite database file to get started.")
+
+
+tab1, tab2 = st.tabs(["Intersection Profile", "Data Comparison"])
+
+intTab(tab1)
+
+# Streamlit UI
