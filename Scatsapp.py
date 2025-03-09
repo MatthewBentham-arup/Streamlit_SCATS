@@ -11,6 +11,8 @@ MADE BY: Matthew Bentham
 #Library Imports
 import streamlit as st
 import sqlite3
+import tkinter
+
 import pandas as pd
 import os
 from IntProfile import intTab
