@@ -9,6 +9,10 @@ this Script holds all methods relating to the filter of data before data is extr
 
 """
 
+
+
+
+
 class SiteForm:
     def __init__(self,value=None):
         self.value = value
@@ -28,7 +32,7 @@ class SiteForm:
     def display_sites(self):
      
 
-        with st.expander("List All Sites You Wish to View"):
+        with st.expander("List All Sites You Wish to View",expanded=True):
             for j, field in enumerate(st.session_state.input_rows[0]["sites"]):
                 field["siteno"] = st.number_input(
                     f"SITE NO (SITE {j+1})", value=field["siteno"], key=f"site_{j}", step=1, format="%d"
@@ -64,7 +68,7 @@ class DateRanges:
             st.rerun()
 
     def display_dates(self):
-        with st.expander("List All Date Ranges you wish to view"):
+        with st.expander("List All Date Ranges you wish to view",expanded=True):
             for j, field in enumerate(st.session_state.Dates[0]["Dates"]):
                 col1, col2 = st.columns(2)
                 with col1:
@@ -84,6 +88,7 @@ class DateRanges:
             with col1:
                 if st.button("➕ Add More Ranges"):
                     self.add_date()
+                    
             with col2:
                 if st.button("🗑️ Remove Last Range"):
                     self.remove_date()
@@ -141,7 +146,7 @@ class custom_sites_form:
     def display_sites(self):
 
         
-        with st.expander(f"Please Insert Custom Detector Group"):
+        with st.expander(f"Please Insert Custom Detector Group",expanded=True):
             user_input = st.text_area(
             "Enter a list of dictionaries (JSON format):",
             placeholder='[{"Name": "West Approach", "Sites": [{"Site": 1125, "Detectors": [1, 2,3,4,5,5]},{"Site": 2245, "Detectors": [12,13]}]}]',
@@ -178,12 +183,16 @@ def Main_filters():
     dateform = DateRanges()
     dateform.display_dates() 
 
+    if 'submitted' not in st.session_state:
+        st.session_state.submitted = False
+
     if st.button("✅ Submit"):
-            st.success("Final data submitted!")
-            st.write("Submitted Sites Data:")
+            st.session_state.submitted = True  # Set flag indicating the form is submitted
             
-            st.write(dateform.value)
-            st.write(form.value)
+    if st.session_state.submitted:
+          
+
             return dateform.value,form.value,typef
-            
+  
+    
 

@@ -15,7 +15,9 @@ import pandas as pd
 import os
 from IntProfile import intTab
 from filters import Main_filters
-from Db_functions import import_file_paths
+from filedialog import upload_folder_button
+from Db_functions import import_file_paths,Extract_from_dbs,Extract_from_dbs_custom
+
 import tempfile
 st.set_page_config(page_title='S.C.A.T.S', page_icon="📊", initial_sidebar_state="expanded", layout='wide')
 # LOAD EXTERNAL CSS FOR STYLING
@@ -52,20 +54,46 @@ st.markdown(
 # DB INPUTS AND FILTERING:
 Data_created = False
 
+# Streamlit UI
+if "folder_path" not in st.session_state:
+    st.session_state.folder_path = None  # Default is None until a folder is selected
+
+# Select a folder using the button
+folder_path = upload_folder_button()
+
+# If folder is selected, store it in session state
+if folder_path:
+    st.session_state.folder_path = folder_path
 
 
-
-# User Input for Multiple Database Files (using file uploader with multiple selection)
-db_files = st.file_uploader("Choose one or more SQLite database files:", type=["sqlite", "db"], accept_multiple_files=True)
-files = import_file_paths(db_files)
-#st.text(files)
-if files:
+if  st.session_state['folder_path']:
     filters = Main_filters()
     if filters:
         dates = filters[0][0]['Dates']
         filter_type = filters[2]
         sites = filters[1]
-        st.text(dates)
+        message_placeholder = st.empty()
+        message_placeholder.text("Processing DB files...")
+        if filter_type =="Sites":
+            site_numbers = [site['siteno'] for site in sites['sites']]
+            
+            data = Extract_from_dbs(st.session_state.folder_path, site_numbers, dates,message_placeholder)
+            message_placeholder.text("Task completed!")
+            if data.empty:
+                st.error("Database contains no data for the selected filters. Please ensure the .db files contains the required information")
+            st.text(data)
+        elif filter_type =="Custom":
+            data = Extract_from_dbs_custom(st.session_state.folder_path, sites, dates,message_placeholder)
+            st.success("Extracted Data!")
+            if data.empty:
+                    st.error("Database contains no data for the selected filters. Please ensure the .db files contains the required information")
+        
+        
+            
+            
+
+
+
 if Data_created:
         tab1, tab2 = st.tabs(["Intersection Profile", "Data Comparison"])
 
