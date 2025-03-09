@@ -1,5 +1,5 @@
 import streamlit as st
-import easygui
+
 
 def upload_folder_button():
     # Add custom HTML to use webkitdirectory for folder selection
