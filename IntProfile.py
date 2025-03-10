@@ -397,7 +397,13 @@ def intTab(tab):
             with col2:
                 
                 st.altair_chart(chart)
-                
+            st.title("Aggregated Data")
+
+            cols_to_move = all_data.columns[-6:].tolist()  # Get last 7 column names
+            remaining_cols = all_data.columns[:-6].tolist()  # Get all other columns
+            new_column_order = cols_to_move + remaining_cols  # New column order
+            edited_data = all_data[new_column_order].set_index('Weekday Name')
+            st.dataframe(edited_data)
             
             
         else:
