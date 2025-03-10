@@ -58,7 +58,7 @@ def generate_summary_dicts(data):
         survey_vol=data.loc[data.index == str(survey_date)]['Total Daily Volume (Veh)'][0]
         perc_dif = ((survey_vol)/Int_vol_dict['30 Busiest day'][1]-1)*100
         factor = ((Int_vol_dict['30 Busiest day'][1])/survey_vol)
-        int_survey_dict={'volume':round(survey_vol),'diff_30':round(perc_dif,2),'factor':round(factor)}
+        int_survey_dict={'volume':round(survey_vol),'diff_30':round(perc_dif,2),'factor':round(factor,2)}
     except:
          int_survey_dict={'volume':"Not in data",'diff_30':"Not in data",'factor':"Not in data"}
 
@@ -227,12 +227,12 @@ def generate_barplot_data(data):
     # Create a new column to differentiate Rank 30 for coloring
     if str(survey_date) in data.index:
         survey_vol = data.loc[data.index == str(survey_date)]['Total Daily Volume (Veh)'].iloc[0]
-        survey_rank = data.loc[data['Total Daily Volume (Veh)'] == survey_vol]['Rank'].iloc[0]
+        survey_rank = int(data.loc[data['Total Daily Volume (Veh)'] == survey_vol]['Rank'].iloc[0])
     
     # Create a new column to differentiate Rank 30 and survey rank for coloring
     data['color'] = data['Rank'].apply(
         lambda x: 'red' if x == 30 else 
-                ('orange' if x == int(survey_rank) else 'grey')
+                ('orange' if x == survey_rank else 'grey')
     )
 
 
