@@ -382,7 +382,7 @@ def intTab(tab):
 
         
         form = FilterClass()
-        form.display_filters(sites) 
+        form.display_filters(sites,"tab1") 
 
         
         if st.session_state.previous_filter != form:

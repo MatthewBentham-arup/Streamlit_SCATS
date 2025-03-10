@@ -15,6 +15,7 @@ import sqlite3
 
 import pandas as pd
 import os
+from data_comparison import intTab2
 from IntProfile import intTab
 from filters import Main_filters
 from filedialog import upload_csv_button
@@ -87,4 +88,6 @@ elif st.session_state.page == 1:
     tab1, tab2 = st.tabs(["Intersection Profile", "Data Comparison"])
 
     # Call your specific function to handle the content of each tab
+    
     intTab(tab1)
+    intTab2(tab2)

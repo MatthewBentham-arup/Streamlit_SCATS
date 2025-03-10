@@ -20,15 +20,16 @@ class FilterClass:
                 "Site_no": 0,
                 "Start_date": last_year,
                 "End_date": today,
-                "Rolling_vol":60
+                "Rolling_vol":60,
+                "Survey_Date":today
             }
 
-    def display_filters(self, sites):
+    def display_filters(self, sites,idval,comparison=False):
         # Dropdown to filter on site
         
         with st.expander("Filters", expanded=True):
             # Set Site_no filter in session state
-            st.session_state.filter["Site_no"] = st.selectbox("Filter on Site", sites)
+            st.session_state.filter["Site_no"] = st.selectbox("Filter on Site", sites,key=f'select {idval}')
             
             # Set start and end date filters
             col1, col2 = st.columns(2)
@@ -36,21 +37,29 @@ class FilterClass:
                 st.session_state.filter["Start_date"] = st.date_input(
                     "Start Date", 
                     value=st.session_state.filter["Start_date"], 
-                    key="start_date"
+                    key=f'sdate {idval}'
                 )
             with col2:
                 st.session_state.filter["End_date"] = st.date_input(
                     "End Date", 
                     value=st.session_state.filter["End_date"], 
-                    key="end_date"
+                    key=f'edate {idval}'
                 )
 
-            st.session_state.filter["Rolling_vol"]=st.slider("Rolling Volume Time Interval (mins)",min_value=15,max_value=1440,value=60,step=15)
+            
+            
+            if comparison:
+                st.session_state.filter["Survey_Date"] = st.date_input(
+                    "Survey Date", 
+                    value=st.session_state.filter["Survey_Date"], 
+                    key=f'Survey_Date {idval}'
+                )
+            else:
+                st.session_state.filter["Rolling_vol"]=st.slider("Rolling Volume Time Interval (mins)",min_value=15,max_value=1440,value=60,step=15,key=f'roll {idval}')
+
 
             # Update the value attribute with the current filter state
             self.value = st.session_state.filter
-
-           
 
 
 
