@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from datetime import datetime, timedelta
+from datetime import date, timedelta
 
 """
 FILTERS
@@ -8,8 +8,49 @@ FILTERS
 this Script holds all methods relating to the filter of data before data is extracted from the databases
 
 """
+today = date.today()
+last_year = today.replace(year=today.year - 1)
 
+class FilterClass:
+    def __init__(self, value=None):
+        self.value = value
+        # Initialize session state filter if it doesn't exist
+        if "filter" not in st.session_state:
+            st.session_state.filter = {
+                "Site_no": 0,
+                "Start_date": last_year,
+                "End_date": today,
+                "Rolling_vol":60
+            }
 
+    def display_filters(self, sites):
+        # Dropdown to filter on site
+        
+        with st.expander("Filters", expanded=True):
+            # Set Site_no filter in session state
+            st.session_state.filter["Site_no"] = st.selectbox("Filter on Site", sites)
+            
+            # Set start and end date filters
+            col1, col2 = st.columns(2)
+            with col1:
+                st.session_state.filter["Start_date"] = st.date_input(
+                    "Start Date", 
+                    value=st.session_state.filter["Start_date"], 
+                    key="start_date"
+                )
+            with col2:
+                st.session_state.filter["End_date"] = st.date_input(
+                    "End Date", 
+                    value=st.session_state.filter["End_date"], 
+                    key="end_date"
+                )
+
+            st.session_state.filter["Rolling_vol"]=st.slider("Rolling Volume Time Interval (mins)",min_value=15,max_value=1440,value=60,step=15)
+
+            # Update the value attribute with the current filter state
+            self.value = st.session_state.filter
+
+           
 
 
 
@@ -18,6 +59,8 @@ class SiteForm:
         self.value = value
         # Ensure session state is initialized correctly
         if "input_rows" not in st.session_state:
+            today = datetime.today()
+            last_year = today - timedelta(days=365)
             st.session_state.input_rows = [{"sites": [{"siteno": 0}]}]
 
     def add_site(self):
@@ -174,14 +217,13 @@ def Main_filters():
 
     if Filter_type =="By Sites":
         typef="Sites"
-        form = SiteForm()
-        form.display_sites() 
+        value=None
     else:
         typef="Custom"
         form = custom_sites_form()
         form.display_sites() 
-    dateform = DateRanges()
-    dateform.display_dates() 
+        value = None
+    
 
     if 'submitted' not in st.session_state:
         st.session_state.submitted = False
@@ -191,8 +233,7 @@ def Main_filters():
             
     if st.session_state.submitted:
           
-
-            return dateform.value,form.value,typef
+            return value,typef
   
     
 

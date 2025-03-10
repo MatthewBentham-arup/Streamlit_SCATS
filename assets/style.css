@@ -1,17 +1,62 @@
 
 
-.dark-grey-box {
-    background-color: #2F2F2F;
-    padding: 20px;
-    border-radius: 10px;
+
+.nocursor { cursor:none; }
+/* ---------- TABLE ---------- */
+.body{cursor: none!important;}
+#summary {
+    cursor:none;
+    width: 100%; /* Table will take full width */
+    font-size: 14px !important;
+    border-collapse: collapse;
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Apply shadow for effect */
+    margin-bottom: 100px;
+  }
+  
+  #summary th, #summary td {
+    padding: 5px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: black;
+    text-align: center;
+    border: 1px solid lightgray;
+  }
+  
+  /* First header row */
+  #summary thead > tr:nth-of-type(1) th {
+    background-color: #4472C4; /* Blue color for the first row */
     color: white;
-    margin-top: 20px;
-}
-.dark-grey-box input {
-    background-color: #4A4A4A;
-    border: none;
-    color: white;
-    border-radius: 5px;
-    padding: 10px;
-    width: 100%;
-}
+    text-align: left;
+  }
+  
+  /* Second and third header rows */
+  #summary thead > tr:nth-of-type(2) th,
+  #summary thead > tr:nth-of-type(3) th {
+    background-color: #D9E1F2;
+    color: black;
+  }
+  
+  /* Apply light blue color to specific rows in the body */
+  #summary tbody > tr:nth-of-type(8),
+  #summary tbody > tr:nth-of-type(9),
+  #summary tbody > tr:nth-of-type(10) {
+    background-color: #B4C6E7;
+    color: black;
+  }
+  
+  /* Hover effect */
+  #summary tbody > tr:nth-of-type(8):hover,
+  #summary tbody > tr:nth-of-type(9):hover,
+  #summary tbody > tr:nth-of-type(10):hover {
+    background-color: #55608f;
+  }
+  
+  #summary th {
+    text-align: center;
+  }
+  
+  #summary tbody tr:hover {
+    background-color: #55608f;
+  }
+
+

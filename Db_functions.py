@@ -6,9 +6,25 @@ import sqlalchemy as db
 from sqlalchemy import text
 import datetime
 import os
+import sqlite3
 '''
 Description: This script contains all methods relating to the querying and importing of db files
 '''
+
+
+def retrieve_data_from_db():
+    # Connect to the SQLite database
+    conn = sqlite3.connect("index.db")
+    
+    # Query the data from the "scats_data" table
+    query = "SELECT * FROM scats_data"
+    df = pd.read_sql(query, conn)
+    
+    # Close the connection
+    conn.close()
+    
+    return df  # Return the DataFrame containing the data
+
 
 def import_file_paths(db_files):
     
