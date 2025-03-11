@@ -256,7 +256,8 @@ def generate_barplot_data(data):
                     legend=alt.Legend(title="", 
                                         values=['orange','red'],
                                         labelExpr="datum.value == 'orange' ? 'Survey Day' : '30th Busiest Day'")
-        )
+        ),
+        tooltip=['Total Daily Volume (Veh):Q', 'Rank']
     ).properties(
         height=400
     )
