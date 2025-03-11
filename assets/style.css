@@ -1,13 +1,11 @@
 
 
 
-.nocursor { cursor:none; }
 /* ---------- TABLE ---------- */
-.body{cursor: none!important;
-margin-bottom: 1020px;}
+
 
 #summary {
-    cursor:none;
+    
     width: 100%; /* Table will take full width */
     font-size: 14px !important;
     border-collapse: collapse;
