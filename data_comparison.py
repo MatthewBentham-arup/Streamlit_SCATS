@@ -8,6 +8,8 @@ import datetime
 Int Profile: 
 This script is used for all functions pertaining to the Data Comparison with 30th Bussiest day
 
+LAST UPDATED: 11/03/2025
+
 '''
 
 # HELPER FUNCTIONS -----------------------------------------------------------------
@@ -53,16 +55,25 @@ def generate_summary_dicts(data):
     Int_vol_dict['90 Percentile'] = data['Total Daily Volume (Veh)'].quantile(0.9)
     Int_vol_dict['50 Percentile'] = data['Total Daily Volume (Veh)'].quantile(0.5)
     Int_vol_dict['Average'] = data['Total Daily Volume (Veh)'].mean()
-    try:
-        survey_date = st.session_state.filter["Survey_Date"].strftime('%d/%m/%Y')
-        survey_vol=data.loc[data.index == str(survey_date)]['Total Daily Volume (Veh)'][0]
+    if st.session_state.filter["Survey_filt"] == 'Survey Date':
+        try:
+            survey_date = st.session_state.filter["Survey_Date"].strftime('%d/%m/%Y')
+            survey_vol=data.loc[data.index == str(survey_date)]['Total Daily Volume (Veh)'][0]
+            perc_dif = ((survey_vol)/Int_vol_dict['30 Busiest day'][1]-1)*100
+            factor = ((Int_vol_dict['30 Busiest day'][1])/survey_vol)
+            int_survey_dict={'volume':round(survey_vol),'diff_30':round(perc_dif,2),'factor':round(factor,2)}
+        except:
+            int_survey_dict={'volume':"Not in data",'diff_30':"Not in data",'factor':"Not in data"}
+
+        return Int_vol_dict,int_survey_dict
+    else: 
+       
+        survey_vol=st.session_state.filter["Survey_volume"]
         perc_dif = ((survey_vol)/Int_vol_dict['30 Busiest day'][1]-1)*100
         factor = ((Int_vol_dict['30 Busiest day'][1])/survey_vol)
         int_survey_dict={'volume':round(survey_vol),'diff_30':round(perc_dif,2),'factor':round(factor,2)}
-    except:
-         int_survey_dict={'volume':"Not in data",'diff_30':"Not in data",'factor':"Not in data"}
+        return Int_vol_dict,int_survey_dict
 
-    return Int_vol_dict,int_survey_dict
 
 def Get_unique_sites(data,custom=None):
     sites=data['NB_SCATS_SITE'].unique().tolist()
@@ -179,19 +190,20 @@ def Get_daily_average(filter_on,data,custom_sites):
             filter_query |= (data['NB_SCATS_SITE'] == site_f) & (data['NB_DETECTOR'].isin(detects))
 
         filtered_data = data.loc[filter_query]
-
-
+    
+    # Date Filtering ---------------------------------------------------------------------------
+    filtered_data["QT_INTERVAL_COUNT"] = pd.to_datetime(filtered_data["QT_INTERVAL_COUNT"])
+    
+    is_between_dates = (filtered_data["QT_INTERVAL_COUNT"] > datetime.datetime.combine(filter_on.value["Start_date"], datetime.datetime.min.time())) & (filtered_data["QT_INTERVAL_COUNT"] < datetime.datetime.combine(filter_on.value["End_date"], datetime.datetime.min.time()) )
+    filtered_data=filtered_data.loc[is_between_dates]
 
 
     if filtered_data.empty:
-        st.error("No data matching filters")
+        st.error("No data matching filters (remember to check dates used)")
+        exit()
     else:
-        # Date Filtering ---------------------------------------------------------------------------
-        filtered_data["QT_INTERVAL_COUNT"] = pd.to_datetime(filtered_data["QT_INTERVAL_COUNT"])
         
-        is_between_dates = (filtered_data["QT_INTERVAL_COUNT"] > datetime.datetime.combine(filter_on.value["Start_date"], datetime.datetime.min.time())) & (filtered_data["QT_INTERVAL_COUNT"] < datetime.datetime.combine(filter_on.value["End_date"], datetime.datetime.min.time()) )
-        filtered_data=filtered_data.loc[is_between_dates]
-
+       
         # Group by date ---------------------------------------------------------------------------
         aggregated_data=group_and_sum_exclude(filtered_data,"QT_INTERVAL_COUNT",exclude_in_sum)
         aggregated_data=aggregated_data.reset_index(drop=True)
@@ -201,7 +213,7 @@ def Get_daily_average(filter_on,data,custom_sites):
         # only include volume column
         aggregated_data = aggregated_data[["QT_VOLUME_24HOUR","Weekday"]].rename(columns={"QT_VOLUME_24HOUR": "Total Daily Volume (Veh)"})
         aggregated_data=add_rank_column(aggregated_data)
-
+        
         
         Int_vol_dict,int_survey_dict=generate_summary_dicts(aggregated_data)
         # Get summary values -------------------------------------------------------------------------
@@ -262,7 +274,7 @@ def generate_dotplot_data(data):
     data=data.reset_index(drop=False)
    
     # Make sure 'Date' is in the correct datetime format
-    data["Date"] = pd.to_datetime(data["Date"], errors='coerce')  # Ensure 'Date' is a datetime object
+    data["Date"] = pd.to_datetime(data["Date"], errors='coerce',dayfirst=True)  # Ensure 'Date' is a datetime object
     
     # Create a new column to differentiate weekdays (purple) and other days (blue)
     data['color'] = data['Weekday'].apply(
@@ -289,9 +301,9 @@ def get_missing_dates(data, filter_on):
     data=data.reset_index(drop=False)
    
     # Make sure 'Date' is in the correct datetime format
-    data["Date"] = pd.to_datetime(data["Date"], errors='coerce')  
+    data["Date"] = pd.to_datetime(data["Date"], errors='coerce',dayfirst=True)  
     # 1. Get all unique dates in the 'Date' column
-    data['Date'] = pd.to_datetime(data['Date'], errors='coerce')  # Ensure 'Date' is datetime
+    
     unique_dates = set(data['Date'].dt.date)  # Extract just the date part
 
     # 2. Create the date range from Start_date to End_date
@@ -327,9 +339,11 @@ def intTab2(tab):
         if 'previous_filter' not in st.session_state:
             st.session_state.previous_filter = None
 
-        
+        data["QT_INTERVAL_COUNT"] = pd.to_datetime(data["QT_INTERVAL_COUNT"])
+        max_date = data["QT_INTERVAL_COUNT"].max()
+        min_date = data["QT_INTERVAL_COUNT"].min()
         form = FilterClass()
-        form.display_filters(sites,"tab2",True) 
+        form.display_filters(sites,"tab2",max_date,min_date,True) 
 
         
         if st.session_state.previous_filter != form:

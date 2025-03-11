@@ -117,7 +117,7 @@ def Summary_rows(df):
 
 def calculate_peaks(data):
     # Define AM and PM peak column ranges (0-47 for AM and 48-95 for PM)
-   
+    
     am_peak_cols = data.columns[:48]  # AM: 0:00 to 11:45 (0-47)
     pm_peak_cols = data.columns[48:95]  # PM: 12:00 to 23:45 (48-95)
 
@@ -217,7 +217,7 @@ def transform_table(orig_df,rolling_int):
     return html_table
    
     
-    
+
 
 
 def Get_daily_average(filter_on,data,custom_sites):
@@ -245,19 +245,20 @@ def Get_daily_average(filter_on,data,custom_sites):
         filtered_data = data.loc[filter_query]
 
 
-
-
+    # Date Filtering ---------------------------------------------------------------------------
+    filtered_data["QT_INTERVAL_COUNT"] = pd.to_datetime(filtered_data["QT_INTERVAL_COUNT"])
+    
+    is_between_dates = (filtered_data["QT_INTERVAL_COUNT"] > datetime.datetime.combine(filter_on.value["Start_date"], datetime.datetime.min.time())) & (filtered_data["QT_INTERVAL_COUNT"] < datetime.datetime.combine(filter_on.value["End_date"], datetime.datetime.min.time()) )
+    filtered_data=filtered_data.loc[is_between_dates]
+ 
     if filtered_data.empty:
-        st.error("No data matching filters")
+        st.error("No data matching filters (remember to check dates used)")
+        exit()
     else:
-        # Date Filtering ---------------------------------------------------------------------------
-        filtered_data["QT_INTERVAL_COUNT"] = pd.to_datetime(filtered_data["QT_INTERVAL_COUNT"])
         
-        is_between_dates = (filtered_data["QT_INTERVAL_COUNT"] > datetime.datetime.combine(filter_on.value["Start_date"], datetime.datetime.min.time())) & (filtered_data["QT_INTERVAL_COUNT"] < datetime.datetime.combine(filter_on.value["End_date"], datetime.datetime.min.time()) )
-        filtered_data=filtered_data.loc[is_between_dates]
         
 
-
+       
         #Rolling Volume ----------------------------------------------------------------------------
         rolling_int= filter_on.value["Rolling_vol"]
     
@@ -375,14 +376,19 @@ def intTab(tab):
         else:
             sites=Get_unique_sites(data)
             custom_sites=None
+      
+
             
 
         if 'previous_filter' not in st.session_state:
             st.session_state.previous_filter = None
 
+        data["QT_INTERVAL_COUNT"] = pd.to_datetime(data["QT_INTERVAL_COUNT"])
+        max_date = data["QT_INTERVAL_COUNT"].max()
+        min_date = data["QT_INTERVAL_COUNT"].min()
         
         form = FilterClass()
-        form.display_filters(sites,"tab1") 
+        form.display_filters(sites,"tab1",max_date,min_date) 
 
         
         if st.session_state.previous_filter != form:
