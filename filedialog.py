@@ -20,7 +20,14 @@ def upload_csv_button():
     if uploaded_file:
         # Read the uploaded CSV into a pandas DataFrame
         df = pd.read_csv(uploaded_file)
+      
+
+        # Filter columns that contain ':' and are not in the exclusion list
+        filtered_cols = df.columns[df.columns.str.contains(":") ].tolist()
+        df_cleaned = df[~df[filtered_cols].isin([-1]).any(axis=1)]
         
+
+       
         # Connect to SQLite (or create the database if it doesn't exist)
         conn = sqlite3.connect("index.db")
         cursor = conn.cursor()
