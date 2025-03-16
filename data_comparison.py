@@ -259,7 +259,8 @@ def generate_barplot_data(data):
         ),
         tooltip=['Total Daily Volume (Veh):Q', 'Rank']
     ).properties(
-        height=400
+        height=400,
+        title=f'Ranked Daily Trafic Volumes'
     )
     return chart
 def generate_dotplot_data(data):
@@ -292,7 +293,8 @@ def generate_dotplot_data(data):
         ),
         tooltip=["Date:T", 'Total Daily Volume (Veh):Q', 'Rank', 'Weekday']
     ).properties(
-        height=400
+        height=400,
+         title=f'Daily Trafic Volumes'
     )
 
     return chart2

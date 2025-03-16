@@ -348,7 +348,8 @@ def generate_lineplot_data(data):
     chart=alt.layer(
         lines, points, rules
     ).properties(
-        height=500
+        height=500,
+         title=f'Daily Traffic Profile ({ str(st.session_state.filter["Site_no"]).title()})  '
     )
 
     return chart

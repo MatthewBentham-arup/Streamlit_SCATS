@@ -82,7 +82,7 @@ if st.session_state.page == 0:
 elif st.session_state.page == 1:
    
    
-    tab1, tab2 = st.tabs(["🚦 Intersection Profile", " ⚖️ Data Comparison"])
+    tab1, tab2 = st.tabs(["Intersection Profile", " Data Comparison"])
 
    
     
