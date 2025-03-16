@@ -29,47 +29,47 @@ class FilterClass:
     def display_filters(self, sites,idval,max_date,min_date,comparison=False):
         # Dropdown to filter on site
         
-        with st.expander("Filters", expanded=True):
-            # Set Site_no filter in session state
-            st.session_state.filter["Site_no"] = st.selectbox("Filter on Site", sites,key=f'select {idval}')
-            
-            # Set start and end date filters
-            col1, col2 = st.columns(2)
-            with col1:
-                st.session_state.filter["Start_date"] = st.date_input(
-                    "Start Date", 
-                    value=min_date, 
-                    key=f'sdate {idval}'
-                )
-            with col2:
-                st.session_state.filter["End_date"] = st.date_input(
-                    "End Date", 
-                    value=max_date, 
-                    key=f'edate {idval}'
-                )
+        
+        # Set Site_no filter in session state
+        st.session_state.filter["Site_no"] = st.selectbox("Filter on Site", sites,key=f'select {idval}')
+        
+        # Set start and end date filters
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.filter["Start_date"] = st.date_input(
+                "Start Date", 
+                value=min_date, 
+                key=f'sdate {idval}'
+            )
+        with col2:
+            st.session_state.filter["End_date"] = st.date_input(
+                "End Date", 
+                value=max_date, 
+                key=f'edate {idval}'
+            )
 
-            
-            
-            if comparison:
-                st.session_state.filter["Survey_filt"] = st.selectbox("Comparison Type", ['Survey Date','Mannual Input'],key=f'select2 {idval}')
-                if st.session_state.filter["Survey_filt"] == 'Survey Date':
-                    st.session_state.filter["Survey_Date"] = st.date_input(
-                        "Survey Date", 
-                        value=st.session_state.filter["Survey_Date"], 
-                        key=f'Survey_Date {idval}'
-                    )
-                else:
-                    st.session_state.filter["Survey_volume"] = st.number_input(
-                        "Volume to Compare", 
-                        value=0, 
-                        key=f'Survey_vol {idval}'
-                    )
+        
+        
+        if comparison:
+            st.session_state.filter["Survey_filt"] = st.selectbox("Comparison Type", ['Survey Date','Mannual Input'],key=f'select2 {idval}')
+            if st.session_state.filter["Survey_filt"] == 'Survey Date':
+                st.session_state.filter["Survey_Date"] = st.date_input(
+                    "Survey Date", 
+                    value=st.session_state.filter["Survey_Date"], 
+                    key=f'Survey_Date {idval}'
+                )
             else:
-                st.session_state.filter["Rolling_vol"]=st.slider("Rolling Volume Time Interval (mins)",min_value=15,max_value=1440,value=60,step=15,key=f'roll {idval}')
+                st.session_state.filter["Survey_volume"] = st.number_input(
+                    "Volume to Compare", 
+                    value=0, 
+                    key=f'Survey_vol {idval}'
+                )
+        else:
+            st.session_state.filter["Rolling_vol"]=st.slider("Rolling Volume Time Interval (mins)",min_value=15,max_value=1440,value=60,step=15,key=f'roll {idval}')
 
 
-            # Update the value attribute with the current filter state
-            self.value = st.session_state.filter
+        # Update the value attribute with the current filter state
+        self.value = st.session_state.filter
 
 
 

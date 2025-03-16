@@ -220,7 +220,7 @@ def transform_table(orig_df,rolling_int):
 
 
 
-def Get_daily_average(filter_on,data,custom_sites,sites):
+def Get_daily_average(filter_on,data,custom_sites,sites,col1):
     
     # Site Filtering ---------------------------------------------------------------------------
     exclude_in_sum=["Month","NB_SCATS_SITE","NB_DETECTOR","Weekday","Year","QT_INTERVAL_COUNT"]
@@ -256,7 +256,7 @@ def Get_daily_average(filter_on,data,custom_sites,sites):
     else:
         
         
-        Generate_map(site_filter,sites,custom_sites)
+        Generate_map(site_filter,sites,custom_sites,col1)
        
         #Rolling Volume ----------------------------------------------------------------------------
         rolling_int= filter_on.value["Rolling_vol"]
@@ -355,7 +355,7 @@ def generate_lineplot_data(data):
     
 
 
-def Generate_map(sites,sites2,custom_sites):
+def Generate_map(sites,sites2,custom_sites,col1):
     import geopandas as gpd
     import folium
     from streamlit_folium import folium_static
@@ -392,26 +392,31 @@ def Generate_map(sites,sites2,custom_sites):
                 get_radius=50,  # Adjust point size
                 get_color=[0, 122, 255, 200],  # Blue with transparency
                 pickable=True,
+            
             )
 
             # Define Mapbox view
             view_state = pdk.ViewState(
                 latitude=gdf["lat"].mean(),
                 longitude=gdf["lon"].mean(),
-                zoom=13,
+                zoom=14,
                 pitch=0,
+             
             )
 
             # Create the map
             map_deck = pdk.Deck(
-                 map_style="mapbox://styles/mapbox/light-v11",  # Grey-White Theme
+                 map_style="mapbox://styles/mapbox/streets-v12",  # Grey-White Theme
                 layers=[layer],
+              
                 initial_view_state=view_state,
-                tooltip={"text": "NAME: {SITE_NAME} \n NO: {SITE_NO}"}
+                tooltip={"text": "NAME: {SITE_NAME} \n NO: {SITE_NO}"},
+                
             )
 
             # Display the map in Streamlit
-            st.pydeck_chart(map_deck)
+            with col1:
+                st.pydeck_chart(map_deck)
 
     except Exception as e:
         st.error(f"Error loading GeoJSON file: {e}")
@@ -440,21 +445,28 @@ def intTab(tab):
         min_date = data["QT_INTERVAL_COUNT"].min()
         
         form = FilterClass()
-        form.display_filters(sites,"tab1",max_date,min_date) 
-
+        
+        col1, map_col= st.columns([1,4])
+        graph_col,col2= st.columns([3,2])
+        with col1:
+            form.display_filters(sites,"tab1",max_date,min_date) 
+        
         
         if st.session_state.previous_filter != form:
             st.session_state.previous_filter = form  # Update the previous selection
            
-            tabled_data,all_data=Get_daily_average(form,data,custom_sites,sites)
+            tabled_data,all_data=Get_daily_average(form,data,custom_sites,sites,map_col)
             chart=generate_lineplot_data(all_data)
-            col1, col2 = st.columns(2)
             
-            with col1:
-                st.markdown(tabled_data, unsafe_allow_html=True)
+            
+          
+            with graph_col:
+            
+                st.altair_chart(chart,key='Rounded')
+             
             with col2:
-                
-                st.altair_chart(chart)
+                st.markdown(tabled_data, unsafe_allow_html=True)
+            
             st.title("Aggregated Data")
 
             cols_to_move = all_data.columns[-6:].tolist()  # Get last 7 column names

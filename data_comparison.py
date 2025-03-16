@@ -344,7 +344,9 @@ def intTab2(tab):
         max_date = data["QT_INTERVAL_COUNT"].max()
         min_date = data["QT_INTERVAL_COUNT"].min()
         form = FilterClass()
-        form.display_filters(sites,"tab2",max_date,min_date,True) 
+        col1, col2 = st.columns([1,3])
+        with col1:
+            form.display_filters(sites,"tab2",max_date,min_date,True) 
 
         
         if st.session_state.previous_filter != form:
@@ -354,22 +356,26 @@ def intTab2(tab):
             chart=generate_barplot_data(all_data)
             chart2=generate_dotplot_data(all_data)
             missing_dates = get_missing_dates(all_data, form)
-            col1, col2 = st.columns(2)
+            
             
             with col1:
-                st.altair_chart(chart2)
-                st.markdown(table_1_html, unsafe_allow_html=True)
                 
-                st.title("Missing Data")
-                st.text("All missing dates (from what was imported) between selected start and end date")
-                st.dataframe(missing_dates)
+                st.markdown(table_1_html, unsafe_allow_html=True)
+                st.markdown(table_2_html, unsafe_allow_html=True)
+                
                 
            
             with col2:
                 st.altair_chart(chart)
-                st.markdown(table_2_html, unsafe_allow_html=True)
+                st.altair_chart(chart2)
+                st.title("Missing Data")
+                st.text("All missing dates (from what was imported) between selected start and end date")
+                st.dataframe(missing_dates)
+
                 st.title("Ranked Data")
                 st.dataframe(all_data[["Total Daily Volume (Veh)","Rank"]])
+                
+                
                 
                
             
