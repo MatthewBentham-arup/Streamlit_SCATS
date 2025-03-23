@@ -264,11 +264,17 @@ def generate_barplot_data(data):
     )
     return chart
 def generate_dotplot_data(data):
+    data=data.reset_index(drop=False)
     # Assuming survey_date is in session state as a string, and is converted to date format
     survey_date = st.session_state.filter["Survey_Date"].strftime('%d/%m/%Y')
     survey_vol = None
     survey_rank = None
-
+    data["Date"] = pd.to_datetime(data["Date"]) 
+    full_date_range = pd.DataFrame({"Date": pd.date_range(start=data["Date"].min(), end=data["Date"].max())})
+ 
+    # Merge with original DataFrame
+    data = full_date_range.merge(data, on="Date", how="left")
+    data['Total Daily Volume (Veh)']=data['Total Daily Volume (Veh)'].fillna(0)
     # Ensure that 'survey_date' exists in the data
     if str(survey_date) in data.index:
         survey_vol = data.loc[data.index == str(survey_date)]['Total Daily Volume (Veh)'].iloc[0]
@@ -280,16 +286,16 @@ def generate_dotplot_data(data):
     
     # Create a new column to differentiate weekdays (purple) and other days (blue)
     data['color'] = data['Weekday'].apply(
-        lambda x: 'purple' if x < 5 else 'blue'
+       lambda x: 'purple' if x < 5 else ('blue' if x >= 5 else 'black')
     )
-
+   
     # Create the dot plot (scatter plot) with date on the x-axis and volume on the y-axis
     chart2 = alt.Chart(data).mark_circle(size=100).encode(
         x="Date:T",  # Treat 'Date' as a temporal field
         y=alt.Y('Total Daily Volume (Veh):Q', title="Total Daily Volume (Veh)"),
-        color=alt.Color('color:N', scale=alt.Scale(domain=['purple', 'blue'], range=['purple', 'blue']),
+        color=alt.Color('color:N', scale=alt.Scale(domain=['purple', 'blue','black'], range=['purple', 'blue','black']),
                         legend=alt.Legend(title="Day Type", 
-                                          labelExpr="datum.value == 'purple' ? 'Weekday' : 'Weekend'")
+                                          labelExpr="datum.value == 'purple' ? 'Weekday' : datum.value == 'blue' ? 'Weekend' : 'Missing Day'")
         ),
         tooltip=["Date:T", 'Total Daily Volume (Veh):Q', 'Rank', 'Weekday']
     ).properties(

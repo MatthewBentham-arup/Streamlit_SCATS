@@ -60,7 +60,7 @@ if st.session_state.page == 0:
     # Upload a CSV file using the button
     uploaded_file = upload_csv_button(col1)
     with col2:
-        Generate_map()
+        Generate_map(zoom=11)
     # If file is uploaded, store it in session state
     if uploaded_file:
         st.session_state.file_path = uploaded_file

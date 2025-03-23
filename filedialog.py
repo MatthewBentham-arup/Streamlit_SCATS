@@ -51,7 +51,7 @@ def upload_csv_button(col1):
             # Connect to SQLite (or create the database if it doesn't exist)
             conn = sqlite3.connect("index.db")
             cursor = conn.cursor()
-            
+            cursor.execute("DROP TABLE IF EXISTS scats_data")
             # Create a table based on the DataFrame's columns if it doesn't exist
             df.to_sql("scats_data", conn, if_exists="replace", index=False)
             

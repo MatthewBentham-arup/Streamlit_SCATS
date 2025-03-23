@@ -3,50 +3,39 @@ import pandas as pd
 from filters import FilterClass
 from Db_functions import retrieve_data_from_db
 import altair as alt
+from Intersection_map import Generate_map
 import datetime
 '''
 Int Profile: 
-This script is used for all functions pertaining to the Intersection Profiling
+This script is used for all functions pertaining to the Intersection Profiling tab
 
 '''
 
 # HELPER FUNCTIONS -----------------------------------------------------------------
-def group_and_sum_exclude(df, group_column, exclude_columns=[]):
-    # Identify numerical columns
+def Aggregate_by_reference(df, reference, exclude_columns=[],aggtype="sum"):
+    '''
+    Simple Method for joining rows that share the same reference value - used to get total daily volumes in data
+    '''
     numeric_columns = df.select_dtypes(include=['number']).columns
-    
-    # Remove excluded columns from numeric columns
+
     numeric_columns_to_sum = [col for col in numeric_columns if col not in exclude_columns]
     
-    # Group by the specified column and aggregate
-    grouped = df.groupby(group_column).agg(
-        {col: 'sum' for col in numeric_columns_to_sum}  # Sum numerical columns
+    grouped = df.groupby(reference).agg(
+        {col: aggtype for col in numeric_columns_to_sum} 
     )
-    
-    
+
+    # make sure to keep 'Days of data' columns without summing
     for col in exclude_columns:
-        grouped[col] = df.groupby(group_column)[col].last()  # Keep the last non-numeric value
+        grouped[col] = df.groupby(reference)[col].last()  
 
     return grouped
-def group_and_average_exclude(df, group_column, exclude_columns=[]):
-    # Identify numerical columns
-    numeric_columns = df.select_dtypes(include=['number']).columns
-    
-    # Remove excluded columns from numeric columns
-    numeric_columns_to_sum = [col for col in numeric_columns if col not in exclude_columns]
-    
-    # Group by the specified column and aggregate
-    grouped = df.groupby(group_column).agg(
-        {col: 'mean' for col in numeric_columns_to_sum}  # Sum numerical columns
-    )
-    
-    
-    for col in exclude_columns:
-        grouped[col] = df.groupby(group_column)[col].last()  # Keep the last non-numeric value
 
-    return grouped
 
 def Rolling_volume_calc(df, exclude_columns,rolling_vol):
+
+    """
+    Method used to generate rolling volume values by joining 15-minute interval data by columns
+    """
 
     no_of_additional_cols = int(rolling_vol/15 )
 
@@ -60,19 +49,21 @@ def Rolling_volume_calc(df, exclude_columns,rolling_vol):
     # Create a copy of the dataframe to avoid modifying the original dataframe
     df_copy = df.copy()
 
-    # Iterate over each column that needs processing
+    
     for i, col in enumerate(columns_to_process):
         if i+no_of_additional_cols > len(columns_to_process):
             df_copy[col]=0
         else:
-            # For each column, add the current column and the previous 3 columns (if they exist)
+           
             cols_to_sum = columns_to_process[i:i+no_of_additional_cols] 
-            
-            # Sum the selected columns
             df_copy[col] = df_copy[cols_to_sum].sum(axis=1)
 
     return df_copy
+
 def Summary_rows(df):
+    """
+    Method used for calculating Weekend , Weekday and 7 Day averages
+    """
     # List of columns that should be summed instead of averaged.
     sum_columns = ['Days of data']
 
@@ -116,14 +107,17 @@ def Summary_rows(df):
     return df
 
 def calculate_peaks(data):
-    # Define AM and PM peak column ranges (0-47 for AM and 48-95 for PM)
+    '''
+    Method Used to get Peak Period and Peak Values in data (hourly)
+    '''
+    
     
     am_peak_cols = data.columns[:48]  # AM: 0:00 to 11:45 (0-47)
     pm_peak_cols = data.columns[48:95]  # PM: 12:00 to 23:45 (48-95)
 
     # Function to get the column with max value for a peak period
     def get_max_peak_column(row, peak_cols):
-        max_val_col = row[peak_cols].idxmax()  # Get the column name with the max value
+        max_val_col = row[peak_cols].idxmax()  
         return max_val_col
 
     # Apply to each row and create new columns
@@ -132,36 +126,43 @@ def calculate_peaks(data):
     data['AM_peak_max_val'] = data.apply(lambda row: row[row['AM_peak_max']], axis=1)
     data['PM_peak_max_val'] = data.apply(lambda row: row[row['PM_peak_max']], axis=1)
 
-
-
     return data
 
 def get_days_of_data(data):
+    '''
+    Function to get Days of data in a given aggregated row
+    '''
     data['Days of data']=data['Weekday'].map(data.groupby('Weekday').count()['Year'].to_dict())
     return data
 
 def Get_unique_sites(data,custom=None):
+    '''
+    Method to get list of unique sites and in cases of custom filtering 
+    '''
     sites=data['NB_SCATS_SITE'].unique().tolist()
     sites.append('ALL SITES')
     if custom:
         for name in custom:
             sites.append(name)
     return sites
+
+
 def transform_table(orig_df,rolling_int):
+    '''
+    Method for converting data into HTML table (for nice looking table - dont hate!)
+    '''
+
+    # 1. Rename Columns
     new_df = pd.DataFrame({
     "Average volumes": orig_df["Weekday Name"],
     "AM Peak period (start)": orig_df["AM_peak_max"],
     "AM Volume": orig_df["AM_peak_max_val"],
     "PM Peak period (start)": orig_df["PM_peak_max"],
-    "PM Volume": orig_df["PM_peak_max_val"],           # Not in your original data – update if available.
-    "Daily Average": orig_df["QT_VOLUME_24HOUR"],       # Not in your original data – compute or fill as needed.
+    "PM Volume": orig_df["PM_peak_max_val"],   
+    "Daily Average": orig_df['QT_VOLUME_24HOUR'],          
     "Days of data": orig_df["Days of data"]
 })
-    # Create a MultiIndex for the column headers.
-    # This creates a header structure matching your HTML:
-    # - A top header row that spans all columns (handled separately in HTML usually)
-    # - A second row with: "Average volumes", AM (with two sub-columns), PM (with two sub-columns), Daily Average, Days of data.
-    # - A third row with the subheaders for AM and PM.
+    # MULTIINDEX COLUMNS - this is needed to have the merged cells header looks
     columns = pd.MultiIndex.from_tuples([
         ("", "Average volumes"),
         ("AM", "Peak period (start)"),
@@ -171,10 +172,13 @@ def transform_table(orig_df,rolling_int):
         ("", "Daily Average"),
         ("", "Days of data")
     ])
+
     new_df.columns = columns
     new_df = new_df.round(0)
     numeric_columns = new_df.select_dtypes(include=['float64']).columns
     new_df[numeric_columns] = new_df[numeric_columns].astype('int')
+
+
     # Build the HTML table string with merged headers
     html_table = f"""
     <div class="card tab" style="grid-row: 2; grid-column: 1;">
@@ -220,21 +224,24 @@ def transform_table(orig_df,rolling_int):
 
 
 
-def Get_daily_average(filter_on,data,custom_sites,sites,col1):
+def Scats_data_analysis(filter_on,data,custom_sites,all_sites,col1):
+    '''
+    This is the main function which filters and aggregates the data into average rolling values 
+    '''
     
-    # Site Filtering ---------------------------------------------------------------------------
+    # 1 Site Filtering ---------------------------------------------------------------------------
     exclude_in_sum=["Month","NB_SCATS_SITE","NB_DETECTOR","Weekday","Year","QT_INTERVAL_COUNT"]
     site_filter = filter_on.value["Site_no"]
 
-    if type(site_filter) is int:
-        # FILTER ON SITE:
+    if type(site_filter) is int: # CASE 1: Single site is chossen
         filtered_data = data.loc[data['NB_SCATS_SITE']==site_filter]
-    elif site_filter== "ALL SITES":
+    elif site_filter== "ALL SITES":# CASE 2: all sites are chossen - no filtering needed
         filtered_data=data
-    elif custom_sites:
+    elif custom_sites:# CASE 3: Custom Site is choseen
+
         filt_dict =  next((d for d in custom_sites if d["Name"] == site_filter),None)
         site_filters = filt_dict["Sites"]
-        filter_query = False  # Start with a base condition (all False)
+        filter_query = False  
 
         for site_filt in site_filters:
             site_f = site_filt["Site"]
@@ -251,37 +258,42 @@ def Get_daily_average(filter_on,data,custom_sites,sites,col1):
     filtered_data=filtered_data.loc[is_between_dates]
  
     if filtered_data.empty:
-        st.error("No data matching filters (remember to check dates used)")
-        exit()
+        with col1:
+            st.error("No data matching filters (remember to check dates used).If this is a custom filter please ensure the sites and detectors exists in the data you have inputted.")
+            exit()
     else:
         
-        
-        Generate_map(site_filter,sites,custom_sites,col1)
+        # GENERATE MAP WITH CHOSSEN SITES ----------------------------------------------------------
+        Generate_map(site_filter,all_sites,custom_sites,col1,14)
+
+
+        # DATA WRANGLING --------------------------------------------------------------------------
        
-        #Rolling Volume ----------------------------------------------------------------------------
+        #1. GET Rolling Volume ----------------------------------------------------------------------------
         rolling_int= filter_on.value["Rolling_vol"]
     
         exclude_in_rol=["Reference","Month","NB_SCATS_SITE","NB_DETECTOR","Weekday","Year","QT_INTERVAL_COUNT","NM_REGION","CT_RECORDS","QT_VOLUME_24HOUR","CT_ALARM_24HOUR"]
         aggregated_data=Rolling_volume_calc(filtered_data,exclude_in_rol,rolling_int)
 
-        # Group by date ---------------------------------------------------------------------------
-        aggregated_data=group_and_sum_exclude(aggregated_data,"Reference",exclude_in_sum)
+        #2. Group by date ---------------------------------------------------------------------------
+        aggregated_data=Aggregate_by_reference(aggregated_data,"Reference",exclude_in_sum,"sum")
     
-        aggregated_data=get_days_of_data(aggregated_data)
-        # Weekday by date ---------------------------------------------------------------------------
-        aggregated_data=group_and_average_exclude(aggregated_data,"Weekday",exclude_in_sum)
+        aggregated_data=get_days_of_data(aggregated_data)\
+
+        #3. Group by Daytype ---------------------------------------------------------------------------
+        aggregated_data=Aggregate_by_reference(aggregated_data,"Weekday",exclude_in_sum,"mean")
         
         #Drop unnessary columns ---------------------------------------------------------------------
         aggregated_data=aggregated_data.drop(['Year',"QT_INTERVAL_COUNT","CT_ALARM_24HOUR","Month","CT_RECORDS","NB_SCATS_SITE","NB_DETECTOR"],axis=1)
         weekday_map = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 
                 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
 
-        # Add Summary rows -------------------------------------------------------------------------
+        #4. Add Summary rows -------------------------------------------------------------------------
         aggregated_data['Weekday Name'] = aggregated_data['Weekday'].map(weekday_map)
         aggregated_data=Summary_rows(aggregated_data)
-        # Add Peaks -------------------------------------------------------------------------
+        #5. Add Peaks -------------------------------------------------------------------------
         aggregated_data=calculate_peaks(aggregated_data)
-        #transform table ------------------------------------------------------------------------------
+        #6. transform table to make it look nice------------------------------------------------------------------------------
         tabled_data=transform_table(aggregated_data,rolling_int)
 
         return tabled_data,aggregated_data
@@ -303,7 +315,12 @@ def pivot_table(data):
                     var_name='Time (mm:ss)', 
                     value_name='Rolling Volume (veh)') 
     return data_long
+
 def generate_lineplot_data(data):
+    '''
+    Method for generating the 
+    '''
+    
     data_long = pivot_table(data)
    
     data_long['Time (mm-ss)'] = pd.to_datetime(data_long['Time (mm:ss)'], format='%M:%S')
@@ -356,76 +373,28 @@ def generate_lineplot_data(data):
     
 
 
-def Generate_map(sites,sites2,custom_sites,col1):
-    import geopandas as gpd
-    import folium
-    from streamlit_folium import folium_static
-    import pydeck as pdk
-    geojson_file = r"Data/Traffic_Lights.geojson"
-    
-    try:
-        # Load the GeoJSON file
-        gdf = gpd.read_file(geojson_file)
 
-        if type(sites) is int:
-            gdf = gdf[gdf["SITE_NO"] == int(sites)]
-        elif sites== "ALL SITES":
-            sites_ints=[x for x in sites2 if isinstance(x, int) and not isinstance(x, bool)]
-            gdf = gdf[gdf["SITE_NO"].isin(sites_ints)]
-        elif custom_sites:
-            filt_dict =  next((d for d in custom_sites if d["Name"] == sites),None)
-            site_filters = filt_dict["Sites"]
-            cust_sites= [x["Site"] for x in site_filters]
-            
-            gdf = gdf[gdf["SITE_NO"].isin(cust_sites)]
-        if gdf.empty:
-            st.error("The GeoJSON file is empty or not loaded properly.")
-        else:
-            # Convert GeoDataFrame to a Pandas DataFrame with latitude & longitude columns
-            gdf["lon"] = gdf.geometry.x
-            gdf["lat"] = gdf.geometry.y
+def adjust_dataframe(data):
 
-            # Define Mapbox layer
-            layer = pdk.Layer(
-                "ScatterplotLayer",
-                data=gdf,
-                get_position=["lon", "lat"],
-                get_radius=50,  # Adjust point size
-                get_color=[0, 122, 255, 200],  # Blue with transparency
-                pickable=True,
-            
-            )
+    # Rename Columns:
+    data=data.rename({'AM_peak_max':'Peak Period (AM)','PM_peak_max':'Peak Period (PM)','AM_peak_max_val':'Peak Volume (AM)','PM_peak_max_val':'Peak Volume (PM)'},axis=1)
+    data=data.drop(columns ="Weekday")
 
-            # Define Mapbox view
-            view_state = pdk.ViewState(
-                latitude=gdf["lat"].mean(),
-                longitude=gdf["lon"].mean(),
-                zoom=14,
-                pitch=0,
-             
-            )
+    # Edit Column Orders and Change Index
+    cols_to_move = data.columns[-6:].tolist() 
+    remaining_cols = data.columns[:-6].tolist() 
+    new_column_order = cols_to_move + remaining_cols 
+    edited_data = data[new_column_order].set_index('Weekday Name')
 
-            # Create the map
-            map_deck = pdk.Deck(
-                 map_style="mapbox://styles/mapbox/streets-v12",  # Grey-White Theme
-                layers=[layer],
-              
-                initial_view_state=view_state,
-                tooltip={"text": "NAME: {SITE_NAME} \n NO: {SITE_NO}"},
-                
-            )
-
-            # Display the map in Streamlit
-            with col1:
-                st.pydeck_chart(map_deck)
-
-    except Exception as e:
-        st.error(f"Error loading GeoJSON file: {e}")
+    return edited_data 
 
 def intTab(tab):
+
     with tab:
+
         filter_type = st.session_state.get('filters')[1]
         data=retrieve_data_from_db()
+
         if filter_type == 'Custom':
             filters = st.session_state.get('Detector_group')[0]
             names = [dict_filt['Name'] for dict_filt in filters]
@@ -456,7 +425,7 @@ def intTab(tab):
         if st.session_state.previous_filter != form:
             st.session_state.previous_filter = form  # Update the previous selection
            
-            tabled_data,all_data=Get_daily_average(form,data,custom_sites,sites,map_col)
+            tabled_data,all_data=Scats_data_analysis(form,data,custom_sites,sites,map_col)
             chart=generate_lineplot_data(all_data)
             
             
@@ -469,11 +438,9 @@ def intTab(tab):
                 st.markdown(tabled_data, unsafe_allow_html=True)
             
             st.title("Aggregated Data")
+            
 
-            cols_to_move = all_data.columns[-6:].tolist()  # Get last 7 column names
-            remaining_cols = all_data.columns[:-6].tolist()  # Get all other columns
-            new_column_order = cols_to_move + remaining_cols  # New column order
-            edited_data = all_data[new_column_order].set_index('Weekday Name')
+            edited_data=adjust_dataframe(all_data)
             st.dataframe(edited_data)
             
             
